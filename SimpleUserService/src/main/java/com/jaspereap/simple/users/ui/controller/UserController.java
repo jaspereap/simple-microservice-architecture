@@ -1,6 +1,9 @@
 package com.jaspereap.simple.users.ui.controller;
 
 import java.util.Map;
+
+import org.modelmapper.ModelMapper;
+import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -16,10 +19,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jaspereap.simple.users.exceptions.UserServiceException;
+import com.jaspereap.simple.users.shared.UserDto;
+import com.jaspereap.simple.users.ui.model.request.CreateUserRequestModel;
 import com.jaspereap.simple.users.ui.model.request.UpdateUserDetailsRequest;
 import com.jaspereap.simple.users.ui.model.request.UserDetailsRequest;
 import com.jaspereap.simple.users.ui.model.response.UserRest;
 import com.jaspereap.simple.users.userservice.UserService;
+import com.jaspereap.simple.users.userservice.impl.UserServiceImpl;
 
 import jakarta.validation.Valid;
 
@@ -32,6 +38,9 @@ public class UserController {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    UserServiceImpl userServiceImpl;
 
     @Autowired
     Environment env;
@@ -56,12 +65,18 @@ public class UserController {
 
     @PostMapping(
         consumes = MediaType.APPLICATION_JSON_VALUE, 
-        produces = { 
-            MediaType.APPLICATION_JSON_VALUE, 
-            MediaType.APPLICATION_XML_VALUE } )
-    public ResponseEntity<UserRest> createUser(@Valid @RequestBody UserDetailsRequest userDetails) {
-        UserRest returnValue = userService.createUser(userDetails);
-        return new ResponseEntity<UserRest>(returnValue, HttpStatus.ACCEPTED);
+        produces = {MediaType.APPLICATION_JSON_VALUE} )
+    public ResponseEntity<CreateUserRequestModel> createUser(@Valid @RequestBody CreateUserRequestModel userDetails) {
+        ModelMapper modelMapper = new ModelMapper();
+        modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
+        UserDto userDto = modelMapper.map(userDetails, UserDto.class);
+
+        UserDto createdUser = userServiceImpl.createUser(userDto);
+
+        CreateUserRequestModel returnValue = modelMapper.map(createdUser, CreateUserRequestModel.class);
+        return ResponseEntity.status(HttpStatus.CREATED).body(returnValue);
+        
     }
 
     @PutMapping(

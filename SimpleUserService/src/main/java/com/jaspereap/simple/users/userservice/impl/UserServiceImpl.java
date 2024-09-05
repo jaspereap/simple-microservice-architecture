@@ -1,29 +1,37 @@
 package com.jaspereap.simple.users.userservice.impl;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
+import org.modelmapper.ModelMapper;
+import org.modelmapper.convention.MatchingStrategies;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.jaspereap.simple.users.ui.model.request.UserDetailsRequest;
-import com.jaspereap.simple.users.ui.model.response.UserRest;
+import com.jaspereap.simple.users.data.UserEntity;
+import com.jaspereap.simple.users.data.UserRepository;
+import com.jaspereap.simple.users.shared.UserDto;
 import com.jaspereap.simple.users.userservice.UserService;
 
 @Service
 public class UserServiceImpl implements UserService {
-    Map<String, UserRest> users;
+
+    @Autowired
+    UserRepository userRepository;
+
     @Override
-    public UserRest createUser(UserDetailsRequest userDetails) {
-        UserRest newUser = new UserRest();
-        String userId = UUID.randomUUID().toString();
-        newUser.setUserId(userId);
-        newUser.setEmail(userDetails.getEmail());
-        newUser.setFirstName(userDetails.getFirstName());
-        newUser.setLastName(userDetails.getLastName());
-        if (users == null) users = new HashMap<>();
-        users.put(userId, newUser);
-        return newUser;
+    public UserDto createUser(UserDto userDetails) {
+        userDetails.setUserId(UUID.randomUUID().toString());
+        ModelMapper modelMapper = new ModelMapper();
+        // Setting explicit model mapping strategy
+        modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+        
+        UserEntity userEntity = modelMapper.map(userDetails, UserEntity.class);
+
+        userEntity.setEncryptedPassword("testing");
+        userRepository.save(userEntity);
+
+        UserDto returnValue = modelMapper.map(userEntity, UserDto.class);
+        return returnValue;
     }
 
 }
